@@ -1,8 +1,8 @@
 from .getForm import getForm
-from firedrake import NonlinearVariationalProblem as NLVP
-from firedrake import NonlinearVariationalSolver as NLVS
-from firedrake import Function, norm
-
+#from firedrake import NonlinearVariationalProblem as NLVP
+#from firedrake import NonlinearVariationalSolver as NLVS
+#from firedrake import Function, norm
+from fenics import *
 
 class TimeStepper:
     """Front-end class for advancing a time-dependent PDE via a Runge-Kutta
@@ -35,19 +35,26 @@ class TimeStepper:
         self.u0 = u0
         self.t = t
         self.dt = dt
-        self.num_fields = len(u0.function_space())
+        self.num_fields = u0.function_space().dim()
         self.num_stages = len(butcher_tableau.b)
         self.butcher_tableau = butcher_tableau
 
         bigF, stages, bigBCs, bigBCdata = \
-            getForm(F, butcher_tableau, t, dt, u0, bcs)
+            getForm(F, butcher_tableau, t, dt, u0)
+            #getForm(F, butcher_tableau, t, dt, u0, bcs)
+        print(bigF)
+        print(stages)
+        print(bigBCs)
+        print(bigBCdata)
 
         self.stages = stages
         self.bigBCs = bigBCs
         self.bigBCdata = bigBCdata
-        problem = NLVP(bigF, stages, bigBCs)
-        self.solver = NLVS(problem, solver_parameters=solver_parameters)
-
+        print(solver_parameters)
+        #problem = NLVP(bigF, stages, bigBCs)
+        #self.solver = NLVS(problem, solver_parameters=solver_parameters)
+        a, L = lhs(bigF), rhs(bigF)
+        solve(a == L, stages, bigBCs)
         if self.num_stages == 1 and self.num_fields == 1:
             self.ks = (stages,)
         else:
@@ -80,7 +87,7 @@ class TimeStepper:
         for gdat, gcur in self.bigBCdata:
             gdat.interpolate(gcur)
 
-        self.solver.solve()
+        #self.solver.solve()
 
         self._update()
 

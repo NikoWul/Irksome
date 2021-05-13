@@ -1,7 +1,8 @@
 import numpy
-from firedrake import (TestFunction, Function, Constant,
-                       split, DirichletBC, interpolate, project)
-from firedrake.dmhooks import push_parent
+#from firedrake import (TestFunction, Function, Constant,
+ #                      split, DirichletBC, interpolate, project)
+#from firedrake.dmhooks import push_parent
+from fenics import *
 from ufl import diff
 from ufl.algorithms import expand_derivatives
 from ufl.classes import Zero
@@ -12,6 +13,7 @@ from ufl.algorithms.analysis import has_exact_type
 from ufl.classes import CoefficientDerivative
 from ufl.algorithms.map_integrands import map_integrand_dags
 from ufl.log import error
+from functools import partial
 
 
 class MyReplacer(MultiFunction):
@@ -90,7 +92,8 @@ def getForm(F, butch, t, dt, u0, bcs=None):
          onto the corresponding f in order for Firedrake to pick up that
          time-dependent boundary conditions need to be re-applied.
 """
-
+    print(butch.A)
+    
     v = F.arguments()[0]
     V = v.function_space()
     assert V == u0.function_space()
@@ -99,15 +102,26 @@ def getForm(F, butch, t, dt, u0, bcs=None):
     c = numpy.array([Constant(ci) for ci in butch.c])
 
     num_stages = len(c)
-    num_fields = len(V)
-
-    Vbig = numpy.prod([V for i in range(num_stages)])
+    num_fields = V.dim()
+    #Vbig_help = MixedFunctionSpace(V,V)
+    Vbig= V
+    #print(Vbig)
+    #Vbig= 4
     # Silence a warning about transfer managers when we
     # coarsen coefficients in V
-    push_parent(V.dm, Vbig.dm)
-    vnew = TestFunction(Vbig)
+    #push_parent(V.dm, Vbig.dm)
+    partial(v, Vbig)
+    #print(Vbig)
+    vnew = TestFunction(V)
     k = Function(Vbig)
-    if len(V) == 1:
+    
+    #def split(function):
+     #   return tuple(CoordinatelessFunction(fs, dat, name="%s[%d]" % (function.name(), i))
+      #               for i, (fs, dat) in
+       #              enumerate(zip(function.function_space().split(), function)))
+
+    
+    if V.dim() == 1:
         u0bits = [u0]
         vbits = [v]
         if num_stages == 1:
@@ -120,13 +134,16 @@ def getForm(F, butch, t, dt, u0, bcs=None):
         u0bits = split(u0)
         vbits = split(v)
         vbigbits = split(vnew)
-        kbits = split(k)
+        kbits =  split(k)
+        
 
     kbits_np = numpy.zeros((num_stages, num_fields), dtype="object")
 
+    
     for i in range(num_stages):
         for j in range(num_fields):
-            kbits_np[i, j] = kbits[i*num_fields+j]
+            #kbits_np[i, j] = kbits[i*num_fields+j]
+            kbits_np[i, j] = kbits[0]
 
     Ak = A @ kbits_np
 
