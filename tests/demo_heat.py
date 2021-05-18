@@ -17,10 +17,12 @@ from irksome import GaussLegendre, RadauIIA, Dt, TimeStepper
   
 from ufl.algorithms.ad import expand_derivatives
 
+import numpy as np
+
 #implicit midpoint rule
 butcher_tableau = RadauIIA(1)
 ns = butcher_tableau.num_stages  
- 
+
 
 N = 100
 x0 = 0.0
@@ -65,7 +67,7 @@ v = TestFunction(V)
 f =  Expression('beta*t-2-2*alpha',
                  degree=1, alpha=alpha, beta=beta, t=0)
         
-F = u*v*dx + dt*dot(grad(u), grad(v))*dx - (u_n + dt*f)*v*dx
+F = u*v*dx + dt*dot(grad(u), grad(v))*dx - (u_D + dt*f)*v*dx
 a, L = lhs(F), rhs(F)
 
 
@@ -79,7 +81,7 @@ luparams = {"mat_type": "aij",
 #the stage unknowns and sets up a variational problem to solve for the
 #stages at each time step.::
 
-stepper = TimeStepper(F, butcher_tableau, t, dt, u, bcs=bc,
+stepper = TimeStepper(F, butcher_tableau, t, dt, u_n,
                         solver_parameters=luparams)
 
 #This logic is pretty self-explanatory.  We use the
@@ -90,10 +92,14 @@ while (float(t) < 1.0):
     if (float(t) + float(dt) > 1.0):
         dt.assign(1.0 - float(t))
     stepper.advance()
+    u_e = interpolate(u_D, V)
+       
+    error = np.abs(u_e.vector().get_local() - u_n.vector().get_local()).max()
+    print('t = %.2f: error = %.3g' % (t, error))
     print(float(t))
     t.assign(float(t) + float(dt))
 
 #Finally, we print out the relative :math:`L^2` error::
 
 print()
-print(norm(u-uexact)/norm(uexact))
+#print(norm(u-u_n)/norm(u_n))

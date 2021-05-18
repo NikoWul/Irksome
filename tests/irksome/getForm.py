@@ -92,19 +92,20 @@ def getForm(F, butch, t, dt, u0, bcs=None):
          onto the corresponding f in order for Firedrake to pick up that
          time-dependent boundary conditions need to be re-applied.
 """
-    print(butch.A)
     
-    v = F.arguments()[0]
-    V = v.function_space()
-    assert V == u0.function_space()
 
+    v = F.arguments()[0]
+    
+    V = v.function_space()
+    
+    assert V == u0.function_space()
     A = numpy.array([[Constant(aa) for aa in arow] for arow in butch.A])
     c = numpy.array([Constant(ci) for ci in butch.c])
 
     num_stages = len(c)
-    num_fields = V.dim()
+    num_fields = 1
     #Vbig_help = MixedFunctionSpace(V,V)
-    Vbig= V
+    Vbig= V  #This is only correct for 1 stage mehos, eg implicit euler, need to fix
     #print(Vbig)
     #Vbig= 4
     # Silence a warning about transfer managers when we
@@ -120,8 +121,7 @@ def getForm(F, butch, t, dt, u0, bcs=None):
       #               for i, (fs, dat) in
        #              enumerate(zip(function.function_space().split(), function)))
 
-    
-    if V.dim() == 1:
+    if 1 == 1:
         u0bits = [u0]
         vbits = [v]
         if num_stages == 1:
@@ -142,8 +142,8 @@ def getForm(F, butch, t, dt, u0, bcs=None):
     
     for i in range(num_stages):
         for j in range(num_fields):
-            #kbits_np[i, j] = kbits[i*num_fields+j]
-            kbits_np[i, j] = kbits[0]
+            kbits_np[i, j] = kbits[i*num_fields+j]
+            #kbits_np[i, j] = kbits[0]
 
     Ak = A @ kbits_np
 
