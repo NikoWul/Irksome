@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon May 10 09:32:06 2021
+Created on Wed May 26 08:22:18 2021
 
 @author: nikol
 """
 
-
-
-
-  
 from fenics import * 
 
-from irksome import GaussLegendre, RadauIIA, Dt, TimeStepper
+from irksome import GaussLegendre, RadauIIA, Dt, TimeStepper, LobattoIIIC
 
 
   
@@ -20,7 +16,8 @@ from ufl.algorithms.ad import expand_derivatives
 import numpy as np
 
 #implicit midpoint rule
-butcher_tableau = RadauIIA(1)
+butcher_tableau =  LobattoIIIC(2)
+
 ns = butcher_tableau.num_stages  
 
 
@@ -32,6 +29,7 @@ y1 = 10.0
 nx = ny = 8
 msh = UnitSquareMesh(nx, ny)
 V = FunctionSpace(msh, "CG", 1)
+#print(V)
 
 
   
@@ -52,23 +50,24 @@ beta = 1.2         # parameter beta
 u_D = Expression('1 + x[0]*x[0] + alpha*x[1]*x[1] + beta*t*t',
                          degree=2, alpha=alpha, beta=beta, t=0)
         
+
+#initial condition:
+
+
+u_n = interpolate(u_D, V)
+
 def boundary(x, on_boundary):
             return on_boundary
         
 bc = DirichletBC(V, u_D, boundary)
-#initial condition:
-
-u_n = interpolate(u_D, V)
 
 #Now, we will define the semidiscrete variational problem using
 #standard UFL notation, augmented by the ``Dt`` operator from Irksome::
 u = TrialFunction(V)
 v = TestFunction(V)
-f =  Expression('beta*t-2-2*alpha',
-                 degree=1, alpha=alpha, beta=beta, t=0)
-        
-F = u*v*dx + dt*dot(grad(u), grad(v))*dx - (u_D + dt*f)*v*dx
-a, L = lhs(F), rhs(F)
+
+F = inner(Dt(u), v) * dx + inner(grad(u), grad(v)) * dx
+bc = DirichletBC(V, 0, "on_boundary")
 
 
 

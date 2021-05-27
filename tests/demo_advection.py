@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon May 10 09:32:06 2021
+Created on Sun May 23 12:39:21 2021
 
 @author: nikol
 """
 
-
-
-
-  
 from fenics import * 
 
 from irksome import GaussLegendre, RadauIIA, Dt, TimeStepper
@@ -19,7 +15,7 @@ from ufl.algorithms.ad import expand_derivatives
 
 import numpy as np
 
-#implicit midpoint rule
+    # definig mesh
 butcher_tableau = RadauIIA(1)
 ns = butcher_tableau.num_stages  
 
@@ -98,7 +94,8 @@ while (float(t) < 1.0):
     print('t = %.2f: error = %.3g' % (t, error))
     print(float(t))
     t.assign(float(t) + float(dt))
-
+print(u.vector)
 #Finally, we print out the relative :math:`L^2` error::
+for v in vertices(mesh):
+    print(v.point().y())
 
-print()

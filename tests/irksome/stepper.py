@@ -1,6 +1,6 @@
 from .getForm import getForm
-#from firedrake import NonlinearVariationalProblem as NLVP
-#from firedrake import NonlinearVariationalSolver as NLVS
+#from irksome import NonlinearVariationalProblem as NLVP
+#from irksome import NonlinearVariationalSolver as NLVS
 #from firedrake import Function, norm
 from fenics import *
 #from pyop2 import*
@@ -36,8 +36,9 @@ class TimeStepper:
         self.u0 = u0
         self.t = t
         self.dt = dt
-        #self.num_fields = u0.function_space().dim()
-        self.num_fields = 1
+        self.num_fields = u0.function_space().dim()
+        
+        #self.num_fields = 1
         self.num_stages = butcher_tableau.num_stages
         self.butcher_tableau = butcher_tableau
 
@@ -54,7 +55,7 @@ class TimeStepper:
         #problem = NLVP(bigF, stages, bigBCs)
         #self.solver = NLVS(problem, solver_parameters=solver_parameters)
         a, L = lhs(bigF), rhs(bigF)
-        solve(a == L, stages, bigBCs)
+        solve(a==L, stages, bigBCs)
         if self.num_stages == 1 and self.num_fields == 1:
             self.ks = (stages,)
         else:
