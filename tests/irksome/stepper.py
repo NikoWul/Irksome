@@ -55,7 +55,9 @@ class TimeStepper:
         #problem = NLVP(bigF, stages, bigBCs)
         #self.solver = NLVS(problem, solver_parameters=solver_parameters)
         a, L = lhs(bigF), rhs(bigF)
-        solve(a==L, stages, bigBCs)
+        print(a)
+        print(L)
+        solve(a==L, stages, bcs)
         if self.num_stages == 1 and self.num_fields == 1:
             self.ks = (stages,)
         else:
@@ -71,7 +73,7 @@ class TimeStepper:
         ns = self.num_stages
         nf = self.num_fields
         x=1
-        print(u0)
+       
 
         if nf == 1:
             ks = self.ks

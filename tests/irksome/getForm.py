@@ -94,13 +94,11 @@ def getForm(F, butch, t, dt, u0, bcs=None):
          time-dependent boundary conditions need to be re-applied.
 """
     
-    print(F)
-         
+    
     v = F.arguments()[0]
     
     V = v.function_space()
-    print(butch.A)
-    print(butch.c)
+   
     
     
     assert V == u0.function_space()
@@ -168,34 +166,44 @@ def getForm(F, butch, t, dt, u0, bcs=None):
             #kbits_np[i, j] = kbits[0]
 
     Ak = A @ kbits_np
-    print('start')
+    u0_new=u0+ A[0][0]*dt*kbits[0]+A[0][1]*dt*kbits[1]
+    print(u0_new)
+    print(A[0][0])
     Fnew = Zero()
+    u1_new = u0+ A[1][0]*dt*kbits[0]+A[1][1]*dt*kbits[1]
+    print(u1_new)
+    v0, v1 = TestFunctions(Vbig)
+    print(v0)
+   
     
     
-    for i in range(num_stages):
-        repl = {t: t + c[i] * dt}
-
-        for j, (ubit, vbit, kbit) in enumerate(zip(u0bits, vbits, kbits)):
-            repl[ubit] = ubit + dt * Ak[i, j]
-            print(repl[ubit])
-            print(vbigbits)
-            #repl[vbit] = vbigbits[num_fields * i + j]
-            repl[vbit] = TestFunction(V)
-            #repl[vbit] = vbits[num_fields * i + j]
-            
-            repl[TimeDerivative(ubit)] = kbits_np[i, j]
-            if (len(ubit.ufl_shape) == 1):
-                for kk, kbitbit in enumerate(kbits_np[i, j]):
-                    repl[TimeDerivative(ubit[kk])] = kbitbit
-                    repl[ubit[kk]] = repl[ubit][kk]
-                    repl[vbit[kk]] = repl[vbit][kk]
-            #print(repl)
-        print(repl.__repr__())
-        Fnew = Fnew+ F(v, repl, coefficients={repl:i})
-        print(Fnew )
-        print(i)
-    print(vbit)
+    Fnew = (inner(kbits[0] , v0) * dx + inner(kbits[1], v1) * dx +inner(grad(u0_new), grad(v0)) * dx + inner(grad(u1_new), grad(v1)) * dx)
     print(Fnew)
+    #for i in range(num_stages):
+     #   repl = {t: t + c[i] * dt}
+#
+ #       for j, (ubit, vbit, kbit) in enumerate(zip(u0bits, vbits, kbits)):
+  #          repl[ubit] = ubit + dt * Ak[i, j]
+   #         print(repl[ubit])
+    #        print(vbigbits)
+     #       #repl[vbit] = vbigbits[num_fields * i + j]
+      #      repl[vbit] = TestFunction(V)
+       #     #repl[vbit] = vbits[num_fields * i + j]
+        #    
+         #   print(repl[ubit])
+          #  if (len(ubit.ufl_shape) == 1):
+           #     print('in if')
+            #    for kk, kbitbit in enumerate(kbits_np[i, j]):
+             #       repl[TimeDerivative(ubit[kk])] = kbitbit
+              #      repl[ubit[kk]] = repl[ubit][kk]
+               #     repl[vbit[kk]] = repl[vbit][kk]
+            #print(repl)
+        #print(repl.__repr__())
+        #Fnew = Fnew+ F(repl[ubit], repl[vbit], coefficients={repl[vbit]:i})
+        #print(Fnew )    
+        #print(i)
+    #print(vbit)
+    #print(Fnew)
     bcnew = []
     gblah = []
 
