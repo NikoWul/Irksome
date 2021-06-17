@@ -1,7 +1,9 @@
 import numpy
-from firedrake import (TestFunction, Function, Constant,
-                       split, DirichletBC, interpolate, project)
-from firedrake.dmhooks import push_parent
+#from firedrake import (TestFunction, Function, Constant,
+ #                      split, DirichletBC, interpolate, project)
+#from firedrake.dmhooks import push_parent
+from fenics import *
+from ufl import form
 from ufl import diff
 from ufl.algorithms import expand_derivatives
 from ufl.classes import Zero
@@ -12,6 +14,7 @@ from ufl.algorithms.analysis import has_exact_type
 from ufl.classes import CoefficientDerivative
 from ufl.algorithms.map_integrands import map_integrand_dags
 from ufl.log import error
+from functools import partial
 
 
 class MyReplacer(MultiFunction):
@@ -90,61 +93,117 @@ def getForm(F, butch, t, dt, u0, bcs=None):
          onto the corresponding f in order for Firedrake to pick up that
          time-dependent boundary conditions need to be re-applied.
 """
-
+    
+    
     v = F.arguments()[0]
+    
     V = v.function_space()
+   
+    
+    
     assert V == u0.function_space()
-
+    
     A = numpy.array([[Constant(aa) for aa in arow] for arow in butch.A])
     c = numpy.array([Constant(ci) for ci in butch.c])
 
     num_stages = len(c)
-    num_fields = len(V)
-
-    Vbig = numpy.prod([V for i in range(num_stages)])
+    num_fields =1
+    
+    
+    
+    
+    
+    E=V.ufl_element()*V.ufl_element()
+    Vbig= FunctionSpace(V.mesh(),E)
+    
+    #Vbig=V*V
+   
+    #Vbig= V  #This is only correct for 1 stage mehos, eg implicit euler, need to fix
+    #Vbig= 4
     # Silence a warning about transfer managers when we
     # coarsen coefficients in V
-    push_parent(V.dm, Vbig.dm)
-    vnew = TestFunction(Vbig)
+    #push_parent(V.dm, Vbig.dm)
+    partial(v, Vbig)
+
+    vnew = TestFunction(V)
     k = Function(Vbig)
-    if len(V) == 1:
+    u=TrialFunction(Vbig)
+    
+    
+    #def split(function):
+     #   return tuple(CoordinatelessFunction(fs, dat, name="%s[%d]" % (function.name(), i))
+      #               for i, (fs, dat) in
+       #              enumerate(zip(function.function_space().split(), function)))
+    
+    if num_fields== 1:
         u0bits = [u0]
         vbits = [v]
         if num_stages == 1:
             vbigbits = [vnew]
             kbits = [k]
+            
         else:
             vbigbits = split(vnew)
             kbits = split(k)
+            
     else:
+    
         u0bits = split(u0)
         vbits = split(v)
         vbigbits = split(vnew)
-        kbits = split(k)
+        kbits =  split(k)
+        
 
     kbits_np = numpy.zeros((num_stages, num_fields), dtype="object")
-
+    #print(kbits[0].__repr__())
+    #print(kbits[1].__repr__())
+    
+    
+    
     for i in range(num_stages):
         for j in range(num_fields):
             kbits_np[i, j] = kbits[i*num_fields+j]
+            #kbits_np[i, j] = kbits[0]
 
     Ak = A @ kbits_np
-
+    u0_new=u0+ A[0][0]*dt*kbits[0]+A[0][1]*dt*kbits[1]
+    print(u0_new)
+    print(A[0][0])
     Fnew = Zero()
-
-    for i in range(num_stages):
-        repl = {t: t + c[i] * dt}
-        for j, (ubit, vbit, kbit) in enumerate(zip(u0bits, vbits, kbits)):
-            repl[ubit] = ubit + dt * Ak[i, j]
-            repl[vbit] = vbigbits[num_fields * i + j]
-            repl[TimeDerivative(ubit)] = kbits_np[i, j]
-            if (len(ubit.ufl_shape) == 1):
-                for kk, kbitbit in enumerate(kbits_np[i, j]):
-                    repl[TimeDerivative(ubit[kk])] = kbitbit
-                    repl[ubit[kk]] = repl[ubit][kk]
-                    repl[vbit[kk]] = repl[vbit][kk]
-        Fnew += replace(F, repl)
-
+    u1_new = u0+ A[1][0]*dt*kbits[0]+A[1][1]*dt*kbits[1]
+    print(u1_new)
+    v0, v1 = TestFunctions(Vbig)
+    print(v0)
+   
+    
+    
+    Fnew = (inner(kbits[0] , v0) * dx + inner(kbits[1], v1) * dx +inner(grad(u0_new), grad(v0)) * dx + inner(grad(u1_new), grad(v1)) * dx)
+    print(Fnew)
+    #for i in range(num_stages):
+     #   repl = {t: t + c[i] * dt}
+#
+ #       for j, (ubit, vbit, kbit) in enumerate(zip(u0bits, vbits, kbits)):
+  #          repl[ubit] = ubit + dt * Ak[i, j]
+   #         print(repl[ubit])
+    #        print(vbigbits)
+     #       #repl[vbit] = vbigbits[num_fields * i + j]
+      #      repl[vbit] = TestFunction(V)
+       #     #repl[vbit] = vbits[num_fields * i + j]
+        #    
+         #   print(repl[ubit])
+          #  if (len(ubit.ufl_shape) == 1):
+           #     print('in if')
+            #    for kk, kbitbit in enumerate(kbits_np[i, j]):
+             #       repl[TimeDerivative(ubit[kk])] = kbitbit
+              #      repl[ubit[kk]] = repl[ubit][kk]
+               #     repl[vbit[kk]] = repl[vbit][kk]
+            #print(repl)
+        #print(repl.__repr__())
+        #Fnew = Fnew+ F(repl[ubit], repl[vbit], coefficients={repl[vbit]:i})
+        #print(Fnew )    
+        #print(i)
+    #print(vbit)
+    #print(Fnew)
     bcnew = []
     gblah = []
 
@@ -161,7 +220,7 @@ def getForm(F, butch, t, dt, u0, bcs=None):
             except TypeError:
                 boundary = (bc.sub_domain,)
         gfoo = expand_derivatives(diff(bc._original_arg, t))
-        if len(V) == 1:
+        if V.dim() == 1:
             for i in range(num_stages):
                 gcur = replace(gfoo, {t: t + c[i] * dt})
                 try:

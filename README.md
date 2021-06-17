@@ -5,3 +5,16 @@ This package works with Firedrake to generate Runge-Kutta methods from a semi-di
 A long-standing critique of fully implicit RK methods, especially for PDE, is that they require a very large algebraic solve for all stages concurrently.  However, we can use Firedrake's solver infrastructure to address this issue, and also recover most of the comparative efficiency of DIRK or explicit methods.
 
 The core of Irksome is based on UFL manipulation and so should be adaptable to work with FEniCS or other UFL-based packages, but the current version works only with Firedrake.
+
+## Building
+
+`pip3 install --user .`
+
+## Test
+
+After installing, run one of the example cases. For example:
+
+```
+cd tests
+python3 advectionBackwardEuler.py
+```
